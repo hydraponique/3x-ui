@@ -1,57 +1,66 @@
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) |  [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
+# Руководство по установке форка 3x-ui с роутингом RoscomVPN
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
-    <img alt="3x-ui" src="./media/3x-ui-light.png">
-  </picture>
-</p>
+## Преимущества
+- ✅ Все ваши конфиги и настройки сохраняются
+- ✅ Старые данные, пользователи и т.д. - не теряются
+- ✅ Используется самая свежая версия 3x-ui
+- ✅ **Актуальный роутинг RoscomVPN в каждой подписке**
 
-[![Release](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
-[![Build](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg)](https://github.com/MHSanaei/3x-ui/actions)
-[![GO Version](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg)](#)
-[![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg)](https://github.com/MHSanaei/3x-ui/releases/latest)
-[![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0.en.html)
-[![Go Reference](https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v2.svg)](https://pkg.go.dev/github.com/mhsanaei/3x-ui/v2)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mhsanaei/3x-ui/v2)](https://goreportcard.com/report/github.com/mhsanaei/3x-ui/v2)
+## Предварительные требования
+- Исходный контейнер 3x-ui уже настроен и работает
+- 3 минуты Вашего времени
 
-**3X-UI** — продвинутая панель управления с открытым исходным кодом на основе веб-интерфейса, разработанная для управления сервером Xray-core. Предоставляет удобный интерфейс для настройки и мониторинга различных VPN и прокси-протоколов.
+## Пошаговая инструкция
 
-> [!IMPORTANT]
-> Этот проект предназначен только для личного использования, пожалуйста, не используйте его в незаконных целях и в производственной среде.
-
-Как улучшенная версия оригинального проекта X-UI, 3X-UI обеспечивает повышенную стабильность, более широкую поддержку протоколов и дополнительные функции.
-
-## Быстрый старт
-
+### 1. Переход в папку panel (местоположение 3x-ui)
+```bash
+cd panel
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+*Убедитесь, что вы находитесь в папке, где расположен файл `compose.yml`*
+
+### 2. Остановка текущего контейнера
+```bash
+docker compose down
 ```
 
-Полную документацию смотрите в [вики проекта](https://github.com/MHSanaei/3x-ui/wiki).
+### 3. Редактирование файла конфигурации
+```bash
+nano compose.yml
+```
 
-## Особая благодарность
+### 4. Замена образа в конфигурации
+Найдите строку:
+```yaml
+image: ghcr.io/mhsanaei/3x-ui:latest
+```
 
-- [alireza0](https://github.com/alireza0/)
+Замените на:
+```yaml
+image: ghcr.io/hydraponique/3x-ui:latest
+```
 
-## Благодарности
+**Внимание!**
+- Сохраняйте пробелы и отступы
+- Остальной конфиг оставляйте без изменений
 
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (Лицензия: **GPL-3.0**): _Улучшенные правила маршрутизации для v2ray/xray и v2ray/xray-clients со встроенными иранскими доменами и фокусом на безопасность и блокировку рекламы._
-- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (Лицензия: **GPL-3.0**): _Этот репозиторий содержит автоматически обновляемые правила маршрутизации V2Ray на основе данных о заблокированных доменах и адресах в России._
+**Управление в nano:**
+- `Ctrl+S` - сохранить изменения
+- `Ctrl+X` - выйти из редактора
 
-## Поддержка проекта
+### 5. Обновление образа
+```bash
+docker compose pull
+```
 
-**Если этот проект полезен для вас, вы можете поставить ему**:star2:
+### 6. Запуск контейнера
+```bash
+docker compose up -d
+```
 
-<a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
-<img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
-</a>
+### 7. Очистка старых образов
+```bash
+docker image prune
+```
+*Нажмите `Y` для подтверждения удаления*
 
-</br>
-<a href="https://nowpayments.io/donation/hsanaei" target="_blank" rel="noreferrer noopener">
-   <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
-</a>
-
-## Звезды с течением времени
-
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui) 
+###Готово! Форк успешно установлен и работает.
