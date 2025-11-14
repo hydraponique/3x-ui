@@ -24,7 +24,7 @@ docker compose down
 
 ### 3. Редактирование файла конфигурации
 ```bash
-nano docker-compose.yml
+nano compose.yml
 ```
 
 ### 4. Замена образа в конфигурации
