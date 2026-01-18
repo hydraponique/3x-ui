@@ -3,6 +3,7 @@ package sub
 import (
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v2/config"
@@ -64,6 +65,28 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 		gJson := g.Group(a.subJsonPath)
 		gJson.GET(":subid", a.subJsons)
 	}
+}
+
+// getRoutingURL получает URL редиректа из заголовков
+func (a *SUBController) getRoutingURL() (string, error) {
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse // Останавливаемся на первом редиректе
+		},
+	}
+
+	resp, err := client.Head("https://routing.help")
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	location := resp.Header.Get("Location")
+	if location == "" {
+		return "", fmt.Errorf("Location header not found")
+	}
+
+	return location, nil
 }
 
 // subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
@@ -157,5 +180,12 @@ func (a *SUBController) subJsons(c *gin.Context) {
 func (a *SUBController) ApplyCommonHeaders(c *gin.Context, header, updateInterval, profileTitle string) {
 	c.Writer.Header().Set("Subscription-Userinfo", header)
 	c.Writer.Header().Set("Profile-Update-Interval", updateInterval)
+	
+	// Получаем routing URL и добавляем в заголовки
+	routingURL, err := a.getRoutingURL()
+	if err == nil && routingURL != "" {
+		c.Writer.Header().Set("routing", routingURL)
+	}
+	
 	c.Writer.Header().Set("Profile-Title", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileTitle)))
 }
