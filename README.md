@@ -12,8 +12,9 @@
 ```bash
 x-ui
 ```
-#### Если команда вывела результат, то вам подойдет способ **"One Line Update"**
-#### Если же команда не найдена - то скорее всего панель установлена в контейнере Docker и вам подойдет способ **"Docker Update"**
+➡️ Если команда ВЫВЕЛА результат, то вам подойдет способ - **"One Line Update"**
+
+➡️ Если же команда НЕ НАЙДЕНА - то скорее всего панель установлена в контейнере Docker и Вам подойдет способ - **"Docker Update"**
 
 -----
 
@@ -21,7 +22,7 @@ x-ui
 ### 1️⃣ **One Line Update** способ
 #### 1.1. Обновление одной командой:
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/hydraponique/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/hydraponique/3x-ui/master/update.sh)
 ```
 #### ✅ Готово! Форк успешно установлен и работает.
 
