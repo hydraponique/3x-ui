@@ -848,7 +848,7 @@ update_x-ui() {
                         ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/hydraponique/3x-ui/main/x-ui.service.debian >/dev/null 2>&1
                     ;;
                     arch | manjaro | parch)
-                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch >/dev/null 2>&1
+                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/hydraponique/3x-ui/main/x-ui.service.arch >/dev/null 2>&1
                     ;;
                     *)
                         ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/hydraponique/3x-ui/main/x-ui.service.rhel >/dev/null 2>&1
