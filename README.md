@@ -2,19 +2,20 @@
 
 <table width="100%">
 <tr>
-<td align="center"><a href="https://github.com/hydraponique/roscomvpn-geoip">RoscomVPN GeoIP</a></td>
-<td align="center"><a href="https://github.com/hydraponique/roscomvpn-geosite">RoscomVPN Geosite</a></td>
-<td align="center"><a href="https://github.com/hydraponique/roscomvpn-routing">RoscomVPN Routing</a></td>
-<td align="center"><b>🚀 3x-ui · RoscomVPN edition</b></td>
+<td align="center" width="25%"><a href="https://github.com/hydraponique/roscomvpn-geoip">RoscomVPN GeoIP</a></td>
+<td align="center" width="25%"><a href="https://github.com/hydraponique/roscomvpn-geosite">RoscomVPN Geosite</a></td>
+<td align="center" width="25%"><a href="https://github.com/hydraponique/3x-ui"><b>🚀 3x-ui · RoscomVPN</b></a></td>
+<td align="center" width="25%"><a href="https://github.com/hydraponique/roscomvpn-routing">RoscomVPN Routing</a></td>
+</tr>
+<tr>
+<td align="center"><img src="https://img.shields.io/github/downloads/hydraponique/roscomvpn-geoip/total.svg" alt="Downloads"> <img src="https://data.jsdelivr.com/v1/package/gh/hydraponique/roscomvpn-geoip/badge" alt="jsDelivr"></td>
+<td align="center"><img src="https://img.shields.io/github/downloads/hydraponique/roscomvpn-geosite/total.svg" alt="Downloads"> <img src="https://data.jsdelivr.com/v1/package/gh/hydraponique/roscomvpn-geosite/badge" alt="jsDelivr"></td>
+<td align="center"><img src="https://img.shields.io/github/v/release/hydraponique/3x-ui.svg" alt="Release"> <img src="https://img.shields.io/github/downloads/hydraponique/3x-ui/total.svg" alt="Downloads"> <img src="https://img.shields.io/badge/Docker-ghcr.io-blue.svg?logo=docker" alt="Docker"></td>
+<td align="center"><img src="https://img.shields.io/github/stars/hydraponique/roscomvpn-routing.svg" alt="Stars"> <img src="https://img.shields.io/badge/Happ-blue.svg" alt="Happ"> <img src="https://img.shields.io/badge/Mihomo-grey.svg" alt="Mihomo"> <img src="https://img.shields.io/badge/Incy-darkgreen.svg" alt="Incy"></td>
 </tr>
 </table>
 
 # 🚀 3x-ui · RoscomVPN edition
-
-[![Release](https://img.shields.io/github/v/release/hydraponique/3x-ui.svg?style=flat-square)](https://github.com/hydraponique/3x-ui/releases)
-[![Downloads](https://img.shields.io/github/downloads/hydraponique/3x-ui/total.svg?style=flat-square)](https://github.com/hydraponique/3x-ui/releases/latest)
-[![Docker](https://img.shields.io/badge/Docker-ghcr.io%2Fhydraponique-blue?style=flat-square&logo=docker)](https://github.com/hydraponique/3x-ui/pkgs/container/3x-ui)
-[![License](https://img.shields.io/badge/License-GPL%20v3-blue.svg?style=flat-square)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 ### Форк [3x-ui](https://github.com/MHSanaei/3x-ui), в который встроен свежий [RoscomVPN-роутинг](https://github.com/hydraponique/roscomvpn-routing)
 
@@ -118,15 +119,13 @@ bash: x-ui: command not found
 > Всё, что у вас уже настроено — **остаётся**. База `/etc/x-ui/x-ui.db`, сертификаты, inbounds, клиенты, подписки — не трогаются.
 
 <details>
-<summary><h3>🟢 Способ 1 · Одна команда (для standalone)</h3></summary>
+<summary><h3>🟢 Способ 1 · Тихое обновление (для standalone — рекомендуемый)</h3></summary>
 
-Самый простой. Подходит для свежей установки и для апгрейда с апстрима.
+**Лучший выбор**, если у вас уже стоит апстрим или предыдущая версия форка. Не задаёт вопросов, ничего не сбрасывает — просто берёт логин/пароль/порт из существующей базы и обновляет панель.
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/hydraponique/3x-ui/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/hydraponique/3x-ui/main/update.sh)
 ```
-
-Что сделает:
 
 | Шаг | Действие |
 |---|---|
@@ -135,18 +134,20 @@ bash <(curl -Ls https://raw.githubusercontent.com/hydraponique/3x-ui/main/instal
 | 3 | Распакует, поставит на место |
 | 4 | Запустит панель обратно |
 
-База и сертификаты остаются.
+База, сертификаты, логин/пароль, порт — **всё остаётся**.
 
 </details>
 
 <details>
-<summary><h3>🟡 Способ 2 · Тихое обновление (для standalone, без вопросов)</h3></summary>
+<summary><h3>🟡 Способ 2 · Интерактивная установка/обновление (для standalone)</h3></summary>
 
-То же что способ 1, но **не спрашивает** username/password/port — берёт из существующей базы. Удобно, если уже всё настроено и нужен просто апдейт.
+То же что способ 1, но **спросит** username / password / порт панели — удобно, если ставите впервые или хотите поменять учётные данные.
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/hydraponique/3x-ui/main/update.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/hydraponique/3x-ui/main/install.sh)
 ```
+
+База, сертификаты, inbounds, клиенты, подписки — **остаются** (как и в способе 1). Меняется только бинарь, geo-файлы и `x-ui.sh`. Если на сервере уже что-то стоит — это просто обновление с возможностью переустановить логин/пароль.
 
 </details>
 
