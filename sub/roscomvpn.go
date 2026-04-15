@@ -18,10 +18,10 @@ const (
 	RoscomVPNSourceWhitelist = "whitelist"
 	RoscomVPNSourceCustom    = "custom"
 
-	roscomvpnCacheTTL       = 10 * time.Minute
-	roscomvpnNegativeCache  = 30 * time.Second // back-off after a fetch failure to avoid blocking sub responses
-	roscomvpnHTTPTimeout    = 4 * time.Second
-	roscomvpnMaxBodyBytes   = 1 << 20 // 1 MiB cap for .DEEPLINK content
+	roscomvpnCacheTTL      = 10 * time.Minute
+	roscomvpnNegativeCache = 30 * time.Second // back-off after a fetch failure to avoid blocking sub responses
+	roscomvpnHTTPTimeout   = 4 * time.Second
+	roscomvpnMaxBodyBytes  = 1 << 20 // 1 MiB cap for .DEEPLINK content
 )
 
 var roscomvpnSourceURLs = map[string]string{

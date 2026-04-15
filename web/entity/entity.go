@@ -54,15 +54,15 @@ type AllSetting struct {
 	TwoFactorToken  string `json:"twoFactorToken" form:"twoFactorToken"`   // Two-factor authentication token
 
 	// Subscription server settings
-	SubEnable                   bool   `json:"subEnable" form:"subEnable"`                                     // Enable subscription server
-	SubJsonEnable               bool   `json:"subJsonEnable" form:"subJsonEnable"`                             // Enable JSON subscription endpoint
-	SubTitle                    string `json:"subTitle" form:"subTitle"`                                       // Subscription title
-	SubSupportUrl               string `json:"subSupportUrl" form:"subSupportUrl"`                             // Subscription support URL
-	SubProfileUrl               string `json:"subProfileUrl" form:"subProfileUrl"`                             // Subscription profile URL
-	SubAnnounce                 string `json:"subAnnounce" form:"subAnnounce"`                                 // Subscription announce
-	SubEnableRouting            bool   `json:"subEnableRouting" form:"subEnableRouting"`                       // Enable routing for subscription
-	SubRoutingRules             string `json:"subRoutingRules" form:"subRoutingRules"`                         // Subscription global routing rules (Only for Happ)
-	SubRoutingSource            string `json:"subRoutingSource" form:"subRoutingSource"`                       // Routing rules source: default | jsonsub | whitelist | custom (RoscomVPN)
+	SubEnable        bool   `json:"subEnable" form:"subEnable"`               // Enable subscription server
+	SubJsonEnable    bool   `json:"subJsonEnable" form:"subJsonEnable"`       // Enable JSON subscription endpoint
+	SubTitle         string `json:"subTitle" form:"subTitle"`                 // Subscription title
+	SubSupportUrl    string `json:"subSupportUrl" form:"subSupportUrl"`       // Subscription support URL
+	SubProfileUrl    string `json:"subProfileUrl" form:"subProfileUrl"`       // Subscription profile URL
+	SubAnnounce      string `json:"subAnnounce" form:"subAnnounce"`           // Subscription announce
+	SubEnableRouting bool   `json:"subEnableRouting" form:"subEnableRouting"` // Enable routing for subscription
+	SubRoutingRules  string `json:"subRoutingRules" form:"subRoutingRules"`   // Subscription global routing rules (Only for Happ)
+	SubRoutingSource string `json:"subRoutingSource" form:"subRoutingSource"` // Routing rules source: default | jsonsub | whitelist | custom (RoscomVPN)
 	// NOTE: geoAutoUpdate / geoAutoUpdateCron / geoAutoUpdateSources /
 	// geoLastAutoUpdate* are persisted via dedicated /server/getGeoAutoUpdate
 	// and /server/setGeoAutoUpdate endpoints and must NOT be fields on
