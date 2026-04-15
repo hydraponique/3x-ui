@@ -108,7 +108,7 @@ before_show_menu() {
 }
 
 install() {
-    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/hydraponique/3x-ui/main/install.sh)
     if [[ $? == 0 ]]; then
         if [[ $# == 0 ]]; then
             start
@@ -127,7 +127,7 @@ update() {
         fi
         return 0
     fi
-    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/hydraponique/3x-ui/main/update.sh)
     if [[ $? == 0 ]]; then
         LOGI "Update is complete, Panel has automatically restarted "
         before_show_menu
@@ -145,7 +145,7 @@ update_menu() {
         return 0
     fi
 
-    curl -fLRo /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
+    curl -fLRo /usr/bin/x-ui https://raw.githubusercontent.com/hydraponique/3x-ui/main/x-ui.sh
     chmod +x ${xui_folder}/x-ui.sh
     chmod +x /usr/bin/x-ui
 
@@ -167,7 +167,7 @@ legacy_version() {
         exit 1
     fi
     # Use the entered panel version in the download link
-    install_command="bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/v$tag_version/install.sh") v$tag_version"
+    install_command="bash <(curl -Ls "https://raw.githubusercontent.com/hydraponique/3x-ui/v$tag_version/install.sh") v$tag_version"
 
     echo "Downloading and installing panel version $tag_version..."
     eval $install_command
@@ -206,7 +206,7 @@ uninstall() {
     echo ""
     echo -e "Uninstalled Successfully.\n"
     echo "If you need to install this panel again, you can use below command:"
-    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)${plain}"
+    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/hydraponique/3x-ui/main/install.sh)${plain}"
     echo ""
     # Trap the SIGTERM signal
     trap delete_script SIGTERM
@@ -604,7 +604,7 @@ enable_bbr() {
 }
 
 update_shell() {
-    curl -fLRo /usr/bin/x-ui -z /usr/bin/x-ui https://github.com/MHSanaei/3x-ui/raw/main/x-ui.sh
+    curl -fLRo /usr/bin/x-ui -z /usr/bin/x-ui https://github.com/hydraponique/3x-ui/raw/main/x-ui.sh
     if [[ $? != 0 ]]; then
         echo ""
         LOGE "Failed to download script, Please check whether the machine can connect Github"
@@ -925,6 +925,7 @@ update_all_geofiles() {
     update_geofiles "main"
     update_geofiles "IR"
     update_geofiles "RU"
+    update_geofiles "ROSCOM"
 }
 
 update_geofiles() {
@@ -932,6 +933,14 @@ update_geofiles() {
       "main") dat_files=(geoip geosite); dat_source="Loyalsoldier/v2ray-rules-dat";;
         "IR") dat_files=(geoip_IR geosite_IR); dat_source="chocolate4u/Iran-v2ray-rules" ;;
         "RU") dat_files=(geoip_RU geosite_RU); dat_source="runetfreedom/russia-v2ray-rules-dat";;
+    "ROSCOM")
+            # Split repo: geoip.dat lives in roscomvpn-geoip, geosite.dat in roscomvpn-geosite.
+            curl -fLRo ${xui_folder}/bin/geoip_ROSCOM.dat -z ${xui_folder}/bin/geoip_ROSCOM.dat \
+                https://github.com/hydraponique/roscomvpn-geoip/releases/latest/download/geoip.dat
+            curl -fLRo ${xui_folder}/bin/geosite_ROSCOM.dat -z ${xui_folder}/bin/geosite_ROSCOM.dat \
+                https://github.com/hydraponique/roscomvpn-geosite/releases/latest/download/geosite.dat
+            return
+            ;;
     esac
     for dat in "${dat_files[@]}"; do
         # Remove suffix for remote filename (e.g., geoip_IR -> geoip)
@@ -945,7 +954,8 @@ update_geo() {
     echo -e "${green}\t1.${plain} Loyalsoldier (geoip.dat, geosite.dat)"
     echo -e "${green}\t2.${plain} chocolate4u (geoip_IR.dat, geosite_IR.dat)"
     echo -e "${green}\t3.${plain} runetfreedom (geoip_RU.dat, geosite_RU.dat)"
-    echo -e "${green}\t4.${plain} All"
+    echo -e "${green}\t4.${plain} RoscomVPN (geoip_ROSCOM.dat, geosite_ROSCOM.dat)"
+    echo -e "${green}\t5.${plain} All"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -rp "Choose an option: " choice
 
@@ -969,6 +979,11 @@ update_geo() {
         restart
         ;;
     4)
+        update_geofiles "ROSCOM"
+        echo -e "${green}RoscomVPN datasets have been updated successfully!${plain}"
+        restart
+        ;;
+    5)
         update_all_geofiles
         echo -e "${green}All geo files have been updated successfully!${plain}"
         restart

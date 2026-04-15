@@ -34,6 +34,9 @@ class AllSetting {
         this.subAnnounce = "";
         this.subEnableRouting = true;
         this.subRoutingRules = "";
+        this.subRoutingSource = "default";
+        // geoAutoUpdate* lives outside AllSetting — handled by dedicated
+        // /server/getGeoAutoUpdate and /server/setGeoAutoUpdate endpoints.
         this.subListen = "";
         this.subPort = 2096;
         this.subPath = "/sub/";

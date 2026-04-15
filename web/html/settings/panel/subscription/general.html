@@ -109,6 +109,32 @@
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subRoutingSource"}}</template>
+            <template #description>
+                <div>{{ i18n "pages.settings.subRoutingSourceDesc"}}</div>
+                <div v-if="allSetting.subRoutingSource === 'default'" style="margin-top:4px;opacity:.75;">
+                    {{ i18n "pages.settings.subRoutingSourceDefaultDesc"}}
+                </div>
+                <div v-else-if="allSetting.subRoutingSource === 'jsonsub'" style="margin-top:4px;opacity:.75;">
+                    {{ i18n "pages.settings.subRoutingSourceJsonSubDesc"}}
+                </div>
+                <div v-else-if="allSetting.subRoutingSource === 'whitelist'" style="margin-top:4px;opacity:.75;">
+                    {{ i18n "pages.settings.subRoutingSourceWhitelistDesc"}}
+                </div>
+                <div v-else style="margin-top:4px;opacity:.75;">
+                    {{ i18n "pages.settings.subRoutingSourceCustomDesc"}}
+                </div>
+            </template>
+            <template #control>
+                <a-select v-model="allSetting.subRoutingSource" :style="{ width: '100%' }">
+                    <a-select-option value="default">DEFAULT — RoscomVPN</a-select-option>
+                    <a-select-option value="jsonsub">JSONSUB — RoscomVPN</a-select-option>
+                    <a-select-option value="whitelist">WHITELIST — RoscomVPN</a-select-option>
+                    <a-select-option value="custom">{{ i18n "pages.settings.subRoutingSourceCustom"}}</a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small" v-if="allSetting.subRoutingSource === 'custom'">
             <template #title>{{ i18n "pages.settings.subRoutingRules"}}</template>
             <template #description>{{ i18n "pages.settings.subRoutingRulesDesc"}}</template>
             <template #control>

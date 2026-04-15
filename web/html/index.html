@@ -156,10 +156,22 @@
                 </a-card>
               </a-col>
               <a-col :sm="24" :lg="12">
-                <a-card title='3X-UI' hoverable>
-                  <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/releases" target="_blank">
+                <a-card hoverable>
+                  <template slot="title">
+                    3X-UI
+                    <a rel="noopener" href="https://github.com/hydraponique/3x-ui" target="_blank"
+                       style="text-decoration:none;margin-left:6px;">
+                      <a-tag color="blue" style="font-weight:600;">🚀 RoscomVPN</a-tag>
+                    </a>
+                  </template>
+                  <a rel="noopener" href="https://github.com/hydraponique/3x-ui/releases" target="_blank">
                     <a-tag color="green">
                       <span>v{{ .cur_ver }}</span>
+                    </a-tag>
+                  </a>
+                  <a rel="noopener" href="https://github.com/hydraponique/roscomvpn-routing" target="_blank">
+                    <a-tag color="cyan">
+                      <span>roscomvpn-routing</span>
                     </a-tag>
                   </a>
                   <a rel="noopener" href="https://t.me/XrayUI" target="_blank">
@@ -167,7 +179,7 @@
                       <span>@XrayUI</span>
                     </a-tag>
                   </a>
-                  <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/wiki" target="_blank">
+                  <a rel="noopener" href="https://github.com/hydraponique/3x-ui/wiki" target="_blank">
                     <a-tag color="purple">
                       <span>{{ i18n "pages.index.documentation" }}</span>
                     </a-tag>
@@ -322,13 +334,48 @@
       <a-collapse-panel key="2" header='Geofiles'>
         <a-list class="ant-version-list w-100" bordered>
           <a-list-item class="ant-version-list-item"
-            v-for="file, index in ['geosite.dat', 'geoip.dat', 'geosite_IR.dat', 'geoip_IR.dat', 'geosite_RU.dat', 'geoip_RU.dat']">
-            <a-tag :color="index % 2 == 0 ? 'purple' : 'green'">[[ file ]]</a-tag>
-            <a-icon type="reload" @click="updateGeofile(file)" class="mr-8" />
+            v-for="stat, index in geofileStats">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;">
+              <a-tag :color="index % 2 == 0 ? 'purple' : 'green'">[[ stat.name ]]</a-tag>
+              <span v-if="stat.exists" style="opacity:.7;font-size:12px;">
+                [[ formatGeoSize(stat.size) ]] · [[ formatGeoMtime(stat.modTime) ]]
+              </span>
+              <a-tag v-else color="red">missing</a-tag>
+            </div>
+            <a-icon type="reload" @click="updateGeofile(stat.name)" class="mr-8" />
           </a-list-item>
         </a-list>
-        <div class="mt-5 d-flex justify-end"><a-button @click="updateGeofile('')">{{ i18n
-            "pages.index.geofilesUpdateAll" }}</a-button></div>
+        <div class="mt-5" style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <a-switch v-model="geoAutoUpdate.enabled"></a-switch>
+            <span>{{ i18n "pages.index.geoAutoUpdate" }}</span>
+            <a-input size="small" style="width:130px" v-model="geoAutoUpdate.cron"
+                     :disabled="!geoAutoUpdate.enabled"
+                     placeholder="@daily"></a-input>
+            <a-select mode="multiple" size="small"
+                      v-model="geoAutoUpdate.sources"
+                      :disabled="!geoAutoUpdate.enabled"
+                      :dropdown-class-name="themeSwitcher.currentTheme"
+                      style="min-width:220px;flex:1;"
+                      :placeholder="'{{ i18n "pages.index.geoAutoUpdateSourcesPlaceholder" }}'">
+              <a-select-option value="main">Loyalsoldier (main)</a-select-option>
+              <a-select-option value="IR">chocolate4u (IR)</a-select-option>
+              <a-select-option value="RU">runetfreedom (RU)</a-select-option>
+              <a-select-option value="ROSCOM">RoscomVPN</a-select-option>
+            </a-select>
+            <a-button size="small" type="primary" @click="saveGeoAutoUpdate">{{ i18n "save" }}</a-button>
+          </div>
+          <div v-if="geoAutoUpdate.lastAt" style="font-size:12px;opacity:.75;">
+            {{ i18n "pages.index.geoAutoUpdateLastRun" }}:
+            [[ formatGeoMtime(geoAutoUpdate.lastAt) ]]
+            <a-tag :color="geoAutoUpdate.lastStatus === 'ok' ? 'green' : 'red'" style="margin-left:6px;">
+              [[ geoAutoUpdate.lastStatus || '—' ]]
+            </a-tag>
+          </div>
+          <div class="d-flex justify-end">
+            <a-button @click="updateGeofile('')">{{ i18n "pages.index.geofilesUpdateAll" }}</a-button>
+          </div>
+        </div>
       </a-collapse-panel>
     </a-collapse>
   </a-modal>
@@ -895,6 +942,8 @@
       showAlert: false,
       showIp: false,
       ipLimitEnable: false,
+      geofileStats: [],
+      geoAutoUpdate: { enabled: false, cron: '@daily', sources: [], lastAt: 0, lastStatus: '' },
     },
     methods: {
       loading(spinning, tip = '{{ i18n "loading"}}') {
@@ -955,6 +1004,57 @@
           console.error('Failed to fetch bucketed cpu history', e)
         }
       },
+      async loadGeofileStats() {
+        try {
+          const msg = await HttpUtil.get('/panel/api/server/getGeofilesStats');
+          if (msg.success && Array.isArray(msg.obj)) {
+            this.geofileStats = msg.obj;
+          }
+        } catch (e) { console.error('getGeofilesStats failed', e); }
+      },
+      async loadGeoAutoUpdate() {
+        try {
+          const msg = await HttpUtil.get('/panel/api/server/getGeoAutoUpdate');
+          if (msg.success && msg.obj) {
+            this.geoAutoUpdate = {
+              enabled: !!msg.obj.enabled,
+              cron: msg.obj.cron || '@daily',
+              sources: Array.isArray(msg.obj.sources) ? msg.obj.sources : [],
+              lastAt: Number(msg.obj.lastAt || 0),
+              lastStatus: msg.obj.lastStatus || '',
+            };
+          }
+        } catch (e) { console.error('getGeoAutoUpdate failed', e); }
+      },
+      async saveGeoAutoUpdate() {
+        try {
+          const msg = await HttpUtil.post('/panel/api/server/setGeoAutoUpdate', {
+            enabled: this.geoAutoUpdate.enabled,
+            cron: this.geoAutoUpdate.cron || '@daily',
+            sources: this.geoAutoUpdate.sources || [],
+          });
+          if (msg && msg.success === false) {
+            this.$message.error(msg.msg || 'save failed');
+            return;
+          }
+          this.$message.success('{{ i18n "save" }} ✓');
+          await this.loadGeoAutoUpdate();
+        } catch (e) {
+          this.$message.error(String(e && e.message || e));
+        }
+      },
+      formatGeoSize(bytes) {
+        if (!bytes) return '0 B';
+        const units = ['B','KB','MB','GB'];
+        let i = 0, n = bytes;
+        while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+        return n.toFixed(n < 10 && i > 0 ? 1 : 0) + ' ' + units[i];
+      },
+      formatGeoMtime(ts) {
+        if (!ts) return '—';
+        const d = new Date(ts * 1000);
+        return d.toLocaleString();
+      },
       async openSelectV2rayVersion() {
         this.loading(true);
         const msg = await HttpUtil.get('/panel/api/server/getXrayVersion');
@@ -996,6 +1096,7 @@
               ? `/panel/api/server/updateGeofile/${fileName}`
               : `/panel/api/server/updateGeofile`;
             await HttpUtil.post(url);
+            await this.loadGeofileStats();
             this.loading(false);
           },
         });
@@ -1129,6 +1230,8 @@
 
       // Initial status fetch
       await this.getStatus();
+      await this.loadGeofileStats();
+      await this.loadGeoAutoUpdate();
 
       // Setup WebSocket for real-time updates
       if (window.wsClient) {

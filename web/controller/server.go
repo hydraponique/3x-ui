@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/web/global"
@@ -12,7 +13,11 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/web/websocket"
 
 	"github.com/gin-gonic/gin"
+	"github.com/robfig/cron/v3"
 )
+
+// cronParser accepts standard 5-field expressions AND @descriptors (@daily, @hourly, @every 1h).
+var cronParser = cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 
 var filenameRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-.]+$`)
 
@@ -43,6 +48,9 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/status", a.status)
 	g.GET("/cpuHistory/:bucket", a.getCpuHistoryBucket)
 	g.GET("/getXrayVersion", a.getXrayVersion)
+	g.GET("/getGeofilesStats", a.getGeofilesStats)
+	g.GET("/getGeoAutoUpdate", a.getGeoAutoUpdate)
+	g.POST("/setGeoAutoUpdate", a.setGeoAutoUpdate)
 	g.GET("/getConfigJson", a.getConfigJson)
 	g.GET("/getDb", a.getDb)
 	g.GET("/getNewUUID", a.getNewUUID)
@@ -136,6 +144,88 @@ func (a *ServerController) installXray(c *gin.Context) {
 	version := c.Param("version")
 	err := a.serverService.UpdateXray(version)
 	jsonMsg(c, I18nWeb(c, "pages.index.xraySwitchVersionPopover"), err)
+}
+
+// getGeofilesStats returns size/mtime for each managed geo file.
+func (a *ServerController) getGeofilesStats(c *gin.Context) {
+	jsonObj(c, a.serverService.GetGeofilesStats(), nil)
+}
+
+// getGeoAutoUpdate returns the current auto-update settings for geo files.
+func (a *ServerController) getGeoAutoUpdate(c *gin.Context) {
+	enabled, _ := a.settingService.GetGeoAutoUpdate()
+	expr, _ := a.settingService.GetGeoAutoUpdateCron()
+	if expr == "" {
+		expr = "@daily"
+	}
+	sources, _ := a.settingService.GetGeoAutoUpdateSources()
+	lastAt, _ := a.settingService.GetGeoLastAutoUpdateAt()
+	lastStatus, _ := a.settingService.GetGeoLastAutoUpdateStatus()
+	jsonObj(c, gin.H{
+		"enabled":    enabled,
+		"cron":       expr,
+		"sources":    sources,
+		"lastAt":     lastAt,
+		"lastStatus": lastStatus,
+	}, nil)
+}
+
+// setGeoAutoUpdate updates the auto-update settings for geo files.
+// The cron expression is validated up-front; on success the cron entry
+// is hot-reloaded via global.ReloadGeoAutoUpdate.
+func (a *ServerController) setGeoAutoUpdate(c *gin.Context) {
+	var body struct {
+		Enabled bool     `json:"enabled" form:"enabled"`
+		Cron    string   `json:"cron" form:"cron"`
+		Sources []string `json:"sources" form:"sources"`
+	}
+	if err := c.ShouldBind(&body); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+
+	// Validate cron expression before persisting so the user gets a clear error.
+	if body.Cron != "" {
+		if _, err := cronParser.Parse(body.Cron); err != nil {
+			jsonMsg(c, "", fmt.Errorf("invalid cron expression %q: %v", body.Cron, err))
+			return
+		}
+	}
+
+	// Validate sources against the known keys (empty list = all).
+	validSources := map[string]bool{"main": true, "IR": true, "RU": true, "ROSCOM": true}
+	sanitized := make([]string, 0, len(body.Sources))
+	for _, s := range body.Sources {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		if !validSources[s] {
+			jsonMsg(c, "", fmt.Errorf("unknown geo source %q", s))
+			return
+		}
+		sanitized = append(sanitized, s)
+	}
+
+	if err := a.settingService.SetGeoAutoUpdate(body.Enabled); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	if err := a.settingService.SetGeoAutoUpdateSources(strings.Join(sanitized, ",")); err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	if body.Cron != "" {
+		if err := a.settingService.SetGeoAutoUpdateCron(body.Cron); err != nil {
+			jsonMsg(c, "", err)
+			return
+		}
+		if err := global.ReloadGeoAutoUpdate(body.Cron); err != nil {
+			jsonMsg(c, "", err)
+			return
+		}
+	}
+	jsonMsg(c, "ok", nil)
 }
 
 // updateGeofile updates the specified geo file for Xray.

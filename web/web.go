@@ -20,6 +20,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
 	"github.com/mhsanaei/3x-ui/v2/web/controller"
+	"github.com/mhsanaei/3x-ui/v2/web/global"
 	"github.com/mhsanaei/3x-ui/v2/web/job"
 	"github.com/mhsanaei/3x-ui/v2/web/locale"
 	"github.com/mhsanaei/3x-ui/v2/web/middleware"
@@ -109,8 +110,36 @@ type Server struct {
 
 	cron *cron.Cron
 
+	// geoAutoUpdateEntryID tracks the current cron entry so it can be
+	// removed/re-added when the cron expression changes.
+	geoAutoUpdateEntryID cron.EntryID
+
 	ctx    context.Context
 	cancel context.CancelFunc
+}
+
+// reloadGeoAutoUpdateJob swaps the cron entry for the geo auto-update job.
+// An empty expression falls back to "@daily". Returns any scheduling error
+// without disturbing the existing schedule — the old entry is removed only
+// after the new one has been successfully registered, so a bad expression
+// keeps the previous cron active instead of silently disappearing.
+func (s *Server) reloadGeoAutoUpdateJob(expr string) error {
+	if s == nil || s.cron == nil {
+		return nil
+	}
+	if expr == "" {
+		expr = "@daily"
+	}
+	id, err := s.cron.AddJob(expr, job.NewUpdateGeoJob())
+	if err != nil {
+		return err
+	}
+	oldID := s.geoAutoUpdateEntryID
+	s.geoAutoUpdateEntryID = id
+	if oldID != 0 {
+		s.cron.Remove(oldID)
+	}
+	return nil
 }
 
 // NewServer creates a new web server instance with a cancellable context.
@@ -331,6 +360,23 @@ func (s *Server) startTask() {
 	s.cron.AddJob("@weekly", job.NewPeriodicTrafficResetJob("weekly"))
 	// Run once a month, midnight, first of month
 	s.cron.AddJob("@monthly", job.NewPeriodicTrafficResetJob("monthly"))
+
+	// Geo auto-update scheduling. The enable flag is re-read on every tick
+	// (so the UI switch applies live); the cron expression is hot-reloadable
+	// via global.ReloadGeoAutoUpdate, invoked by the settings controller.
+	{
+		runtime, err := s.settingService.GetGeoAutoUpdateCron()
+		if err != nil || runtime == "" {
+			runtime = "@daily"
+		}
+		id, err := s.cron.AddJob(runtime, job.NewUpdateGeoJob())
+		if err != nil {
+			logger.Warning("Add NewUpdateGeoJob error:", err)
+		} else {
+			s.geoAutoUpdateEntryID = id
+		}
+		global.SetGeoAutoUpdateReloader(s.reloadGeoAutoUpdateJob)
+	}
 
 	// LDAP sync scheduling
 	if ldapEnabled, _ := s.settingService.GetLdapEnable(); ldapEnabled {

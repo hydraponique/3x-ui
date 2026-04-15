@@ -19,6 +19,7 @@ type SUBController struct {
 	subAnnounce      string
 	subEnableRouting bool
 	subRoutingRules  string
+	subRoutingSource string
 	subPath          string
 	subJsonPath      string
 	jsonEnabled      bool
@@ -49,6 +50,7 @@ func NewSUBController(
 	subAnnounce string,
 	subEnableRouting bool,
 	subRoutingRules string,
+	subRoutingSource string,
 ) *SUBController {
 	sub := NewSubService(showInfo, rModel)
 	a := &SUBController{
@@ -58,6 +60,7 @@ func NewSUBController(
 		subAnnounce:      subAnnounce,
 		subEnableRouting: subEnableRouting,
 		subRoutingRules:  subRoutingRules,
+		subRoutingSource: subRoutingSource,
 		subPath:          subPath,
 		subJsonPath:      jsonPath,
 		jsonEnabled:      jsonEnabled,
@@ -147,7 +150,7 @@ func (a *SUBController) subs(c *gin.Context) {
 		if profileUrl == "" {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 		}
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingSource, a.subRoutingRules)
 
 		if a.subEncrypt {
 			c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
@@ -170,7 +173,7 @@ func (a *SUBController) subJsons(c *gin.Context) {
 		if profileUrl == "" {
 			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 		}
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingSource, a.subRoutingRules)
 
 		c.String(200, jsonSub)
 	}
@@ -186,6 +189,7 @@ func (a *SUBController) ApplyCommonHeaders(
 	profileUrl string,
 	profileAnnounce string,
 	profileEnableRouting bool,
+	profileRoutingSource string,
 	profileRoutingRules string,
 ) {
 	c.Writer.Header().Set("Subscription-Userinfo", header)
@@ -207,7 +211,9 @@ func (a *SUBController) ApplyCommonHeaders(
 
 	//Advanced (Happ)
 	c.Writer.Header().Set("Routing-Enable", strconv.FormatBool(profileEnableRouting))
-	if profileRoutingRules != "" {
-		c.Writer.Header().Set("Routing", profileRoutingRules)
+	if profileEnableRouting {
+		if rules := ResolveRoutingRules(profileRoutingSource, profileRoutingRules); rules != "" {
+			c.Writer.Header().Set("Routing", rules)
+		}
 	}
 }

@@ -62,6 +62,12 @@ type AllSetting struct {
 	SubAnnounce                 string `json:"subAnnounce" form:"subAnnounce"`                                 // Subscription announce
 	SubEnableRouting            bool   `json:"subEnableRouting" form:"subEnableRouting"`                       // Enable routing for subscription
 	SubRoutingRules             string `json:"subRoutingRules" form:"subRoutingRules"`                         // Subscription global routing rules (Only for Happ)
+	SubRoutingSource            string `json:"subRoutingSource" form:"subRoutingSource"`                       // Routing rules source: default | jsonsub | whitelist | custom (RoscomVPN)
+	// NOTE: geoAutoUpdate / geoAutoUpdateCron / geoAutoUpdateSources /
+	// geoLastAutoUpdate* are persisted via dedicated /server/getGeoAutoUpdate
+	// and /server/setGeoAutoUpdate endpoints and must NOT be fields on
+	// AllSetting — UpdateAllSetting writes every struct field on every
+	// settings-page save and would otherwise clobber those values.
 	SubListen                   string `json:"subListen" form:"subListen"`                                     // Subscription server listen IP
 	SubPort                     int    `json:"subPort" form:"subPort"`                                         // Subscription server port
 	SubPath                     string `json:"subPath" form:"subPath"`                                         // Base path for subscription URLs

@@ -59,6 +59,12 @@ var defaultValueMap = map[string]string{
 	"subAnnounce":                 "",
 	"subEnableRouting":            "true",
 	"subRoutingRules":             "",
+	"subRoutingSource":            "default",
+	"geoAutoUpdate":               "false",
+	"geoAutoUpdateCron":           "@daily",
+	"geoAutoUpdateSources":        "ROSCOM",
+	"geoLastAutoUpdateAt":         "",
+	"geoLastAutoUpdateStatus":     "",
 	"subListen":                   "",
 	"subPort":                     "2096",
 	"subPath":                     "/sub/",
@@ -493,6 +499,78 @@ func (s *SettingService) GetSubEnableRouting() (bool, error) {
 
 func (s *SettingService) GetSubRoutingRules() (string, error) {
 	return s.getString("subRoutingRules")
+}
+
+func (s *SettingService) GetSubRoutingSource() (string, error) {
+	return s.getString("subRoutingSource")
+}
+
+func (s *SettingService) GetGeoAutoUpdate() (bool, error) {
+	return s.getBool("geoAutoUpdate")
+}
+
+func (s *SettingService) GetGeoAutoUpdateCron() (string, error) {
+	return s.getString("geoAutoUpdateCron")
+}
+
+func (s *SettingService) SetGeoAutoUpdate(v bool) error {
+	return s.setBool("geoAutoUpdate", v)
+}
+
+func (s *SettingService) SetGeoAutoUpdateCron(v string) error {
+	return s.setString("geoAutoUpdateCron", v)
+}
+
+// GetGeoAutoUpdateSources returns the list of source keys enabled for the
+// auto-update job. Empty means "all sources from the allowlist".
+func (s *SettingService) GetGeoAutoUpdateSources() ([]string, error) {
+	raw, err := s.getString("geoAutoUpdateSources")
+	if err != nil {
+		return nil, err
+	}
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return []string{}, nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
+
+func (s *SettingService) SetGeoAutoUpdateSources(v string) error {
+	return s.setString("geoAutoUpdateSources", v)
+}
+
+// GetGeoLastAutoUpdateAt / SetGeoLastAutoUpdateAt persist the unix timestamp
+// as a string so 32-bit builds (386/armv5-7) do not truncate values past 2038.
+func (s *SettingService) GetGeoLastAutoUpdateAt() (int64, error) {
+	raw, err := s.getString("geoLastAutoUpdateAt")
+	if err != nil || strings.TrimSpace(raw) == "" {
+		return 0, err
+	}
+	n, parseErr := strconv.ParseInt(strings.TrimSpace(raw), 10, 64)
+	if parseErr != nil {
+		return 0, nil
+	}
+	return n, nil
+}
+
+func (s *SettingService) SetGeoLastAutoUpdateAt(v int64) error {
+	return s.setString("geoLastAutoUpdateAt", strconv.FormatInt(v, 10))
+}
+
+func (s *SettingService) GetGeoLastAutoUpdateStatus() (string, error) {
+	return s.getString("geoLastAutoUpdateStatus")
+}
+
+func (s *SettingService) SetGeoLastAutoUpdateStatus(v string) error {
+	return s.setString("geoLastAutoUpdateStatus", v)
 }
 
 func (s *SettingService) GetSubListen() (string, error) {

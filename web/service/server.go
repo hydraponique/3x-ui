@@ -1055,123 +1055,190 @@ func (s *ServerService) IsValidGeofileName(filename string) bool {
 	return matched
 }
 
-func (s *ServerService) UpdateGeofile(fileName string) error {
-	type geofileEntry struct {
-		URL      string
-		FileName string
+// GeofileStat describes a local geo data file.
+type GeofileStat struct {
+	Name    string `json:"name"`
+	Size    int64  `json:"size"`
+	ModTime int64  `json:"modTime"` // unix seconds; 0 if file is missing
+	Exists  bool   `json:"exists"`
+}
+
+// geofileEntry defines a managed geo data file and its upstream URL.
+type geofileEntry struct {
+	URL      string
+	FileName string
+}
+
+// geofileAllowlist is the single source of truth for managed geo files.
+// Kept as a package-level var so both UpdateGeofile and GetGeofilesStats
+// enumerate exactly the same set.
+var geofileAllowlist = map[string]geofileEntry{
+	"geoip.dat":          {"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip.dat"},
+	"geosite.dat":        {"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite.dat"},
+	"geoip_IR.dat":       {"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat", "geoip_IR.dat"},
+	"geosite_IR.dat":     {"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat", "geosite_IR.dat"},
+	"geoip_RU.dat":       {"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip_RU.dat"},
+	"geosite_RU.dat":     {"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite_RU.dat"},
+	"geoip_ROSCOM.dat":   {"https://github.com/hydraponique/roscomvpn-geoip/releases/latest/download/geoip.dat", "geoip_ROSCOM.dat"},
+	"geosite_ROSCOM.dat": {"https://github.com/hydraponique/roscomvpn-geosite/releases/latest/download/geosite.dat", "geosite_ROSCOM.dat"},
+}
+
+// geoUpdateMu serializes geofile update runs so a manual "Update all" click
+// cannot overlap with a cron tick (or another admin's click) and cause
+// interleaved writes or double restarts.
+var geoUpdateMu sync.Mutex
+
+// geofileStatOrder preserves display order in the UI.
+var geofileStatOrder = []string{
+	"geosite.dat", "geoip.dat",
+	"geosite_IR.dat", "geoip_IR.dat",
+	"geosite_RU.dat", "geoip_RU.dat",
+	"geosite_ROSCOM.dat", "geoip_ROSCOM.dat",
+}
+
+// GetGeofilesStats returns file stats for every file in the geofile allowlist.
+// Files missing on disk are reported with Exists=false so the UI can flag them.
+func (s *ServerService) GetGeofilesStats() []GeofileStat {
+	out := make([]GeofileStat, 0, len(geofileStatOrder))
+	for _, name := range geofileStatOrder {
+		if _, ok := geofileAllowlist[name]; !ok {
+			continue
+		}
+		p := filepath.Join(config.GetBinFolderPath(), name)
+		st := GeofileStat{Name: name}
+		if fi, err := os.Stat(p); err == nil {
+			st.Exists = true
+			st.Size = fi.Size()
+			st.ModTime = fi.ModTime().Unix()
+		}
+		out = append(out, st)
 	}
-	geofileAllowlist := map[string]geofileEntry{
-		"geoip.dat":      {"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip.dat"},
-		"geosite.dat":    {"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite.dat"},
-		"geoip_IR.dat":   {"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat", "geoip_IR.dat"},
-		"geosite_IR.dat": {"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat", "geosite_IR.dat"},
-		"geoip_RU.dat":   {"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip_RU.dat"},
-		"geosite_RU.dat": {"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite_RU.dat"},
+	return out
+}
+
+// UpdateGeofiles downloads the supplied subset of allowlisted geofiles and
+// restarts Xray at most once (only if at least one file actually changed).
+// An empty slice is treated as "update every allowlisted file". Concurrent
+// invocations are serialized via geoUpdateMu.
+func (s *ServerService) UpdateGeofiles(names []string) error {
+	if len(names) == 0 {
+		return s.UpdateGeofile("")
 	}
-
-	// Strict allowlist check to avoid writing uncontrolled files
-	if fileName != "" {
-		if _, ok := geofileAllowlist[fileName]; !ok {
-			return common.NewErrorf("Invalid geofile name: %q not in allowlist", fileName)
-		}
-	}
-
-	downloadFile := func(url, destPath string) error {
-		var req *http.Request
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			return common.NewErrorf("Failed to create HTTP request for %s: %v", url, err)
-		}
-
-		var localFileModTime time.Time
-		if fileInfo, err := os.Stat(destPath); err == nil {
-			localFileModTime = fileInfo.ModTime()
-			if !localFileModTime.IsZero() {
-				req.Header.Set("If-Modified-Since", localFileModTime.UTC().Format(http.TimeFormat))
-			}
-		}
-
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			return common.NewErrorf("Failed to download Geofile from %s: %v", url, err)
-		}
-		defer resp.Body.Close()
-
-		// Parse Last-Modified header from server
-		var serverModTime time.Time
-		serverModTimeStr := resp.Header.Get("Last-Modified")
-		if serverModTimeStr != "" {
-			parsedTime, err := time.Parse(http.TimeFormat, serverModTimeStr)
-			if err != nil {
-				logger.Warningf("Failed to parse Last-Modified header for %s: %v", url, err)
-			} else {
-				serverModTime = parsedTime
-			}
-		}
-
-		// Function to update local file's modification time
-		updateFileModTime := func() {
-			if !serverModTime.IsZero() {
-				if err := os.Chtimes(destPath, serverModTime, serverModTime); err != nil {
-					logger.Warningf("Failed to update modification time for %s: %v", destPath, err)
-				}
-			}
-		}
-
-		// Handle 304 Not Modified
-		if resp.StatusCode == http.StatusNotModified {
-			updateFileModTime()
-			return nil
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			return common.NewErrorf("Failed to download Geofile from %s: received status code %d", url, resp.StatusCode)
-		}
-
-		file, err := os.Create(destPath)
-		if err != nil {
-			return common.NewErrorf("Failed to create Geofile %s: %v", destPath, err)
-		}
-		defer file.Close()
-
-		_, err = io.Copy(file, resp.Body)
-		if err != nil {
-			return common.NewErrorf("Failed to save Geofile %s: %v", destPath, err)
-		}
-
-		updateFileModTime()
-		return nil
-	}
-
+	geoUpdateMu.Lock()
+	defer geoUpdateMu.Unlock()
 	var errorMessages []string
-
-	if fileName == "" {
-		// Download all geofiles
-		for _, entry := range geofileAllowlist {
-			destPath := filepath.Join(config.GetBinFolderPath(), entry.FileName)
-			if err := downloadFile(entry.URL, destPath); err != nil {
-				errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", entry.FileName, err))
-			}
+	changed := false
+	for _, name := range names {
+		entry, ok := geofileAllowlist[name]
+		if !ok {
+			errorMessages = append(errorMessages, fmt.Sprintf("Invalid geofile name: %q not in allowlist", name))
+			continue
 		}
-	} else {
-		entry := geofileAllowlist[fileName]
 		destPath := filepath.Join(config.GetBinFolderPath(), entry.FileName)
-		if err := downloadFile(entry.URL, destPath); err != nil {
+		downloaded, err := s.downloadGeofile(entry.URL, destPath)
+		if err != nil {
 			errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", entry.FileName, err))
+			continue
+		}
+		if downloaded {
+			changed = true
 		}
 	}
-
-	err := s.RestartXrayService()
-	if err != nil {
-		errorMessages = append(errorMessages, fmt.Sprintf("Updated Geofile '%s' but Failed to start Xray: %v", fileName, err))
+	if changed {
+		logger.Infof("Geofile batch update: %d file(s) requested, one or more refreshed; restarting Xray", len(names))
+		if err := s.RestartXrayService(); err != nil {
+			errorMessages = append(errorMessages, fmt.Sprintf("Updated geofiles but failed to restart Xray: %v", err))
+		}
 	}
-
 	if len(errorMessages) > 0 {
 		return common.NewErrorf("%s", strings.Join(errorMessages, "\r\n"))
 	}
-
 	return nil
+}
+
+// downloadGeofile is a package-internal wrapper matching downloadFile in
+// UpdateGeofile. It reports whether the file changed.
+func (s *ServerService) downloadGeofile(url, destPath string) (bool, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return false, common.NewErrorf("Failed to create HTTP request for %s: %v", url, err)
+	}
+
+	var localFileModTime time.Time
+	if fileInfo, err := os.Stat(destPath); err == nil {
+		localFileModTime = fileInfo.ModTime()
+		if !localFileModTime.IsZero() {
+			req.Header.Set("If-Modified-Since", localFileModTime.UTC().Format(http.TimeFormat))
+		}
+	}
+
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return false, common.NewErrorf("Failed to download Geofile from %s: %v", url, err)
+	}
+	defer resp.Body.Close()
+
+	var serverModTime time.Time
+	if s := resp.Header.Get("Last-Modified"); s != "" {
+		if t, err := time.Parse(http.TimeFormat, s); err == nil {
+			serverModTime = t
+		}
+	}
+	updateFileModTime := func() {
+		if !serverModTime.IsZero() {
+			_ = os.Chtimes(destPath, serverModTime, serverModTime)
+		}
+	}
+
+	if resp.StatusCode == http.StatusNotModified {
+		updateFileModTime()
+		return false, nil
+	}
+	if resp.StatusCode != http.StatusOK {
+		return false, common.NewErrorf("Failed to download Geofile from %s: received status code %d", url, resp.StatusCode)
+	}
+
+	// Write to a sibling tmp file and rename atomically so a mid-stream
+	// network failure can't leave the live .dat truncated or corrupted.
+	tmpPath := destPath + ".tmp"
+	file, err := os.Create(tmpPath)
+	if err != nil {
+		return false, common.NewErrorf("Failed to create Geofile %s: %v", tmpPath, err)
+	}
+	if _, err = io.Copy(file, resp.Body); err != nil {
+		file.Close()
+		_ = os.Remove(tmpPath)
+		return false, common.NewErrorf("Failed to save Geofile %s: %v", tmpPath, err)
+	}
+	if err := file.Close(); err != nil {
+		_ = os.Remove(tmpPath)
+		return false, common.NewErrorf("Failed to finalize Geofile %s: %v", tmpPath, err)
+	}
+	if err := os.Rename(tmpPath, destPath); err != nil {
+		_ = os.Remove(tmpPath)
+		return false, common.NewErrorf("Failed to install Geofile %s: %v", destPath, err)
+	}
+	updateFileModTime()
+	return true, nil
+}
+
+// UpdateGeofile refreshes one allowlisted geofile (or every file when
+// fileName is empty). It is a thin wrapper around UpdateGeofiles so that
+// single-file and batch paths share the same download + single-restart
+// implementation.
+func (s *ServerService) UpdateGeofile(fileName string) error {
+	if fileName == "" {
+		names := make([]string, 0, len(geofileAllowlist))
+		for k := range geofileAllowlist {
+			names = append(names, k)
+		}
+		return s.UpdateGeofiles(names)
+	}
+	if _, ok := geofileAllowlist[fileName]; !ok {
+		return common.NewErrorf("Invalid geofile name: %q not in allowlist", fileName)
+	}
+	return s.UpdateGeofiles([]string{fileName})
 }
 
 func (s *ServerService) GetNewX25519Cert() (any, error) {

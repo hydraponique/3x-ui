@@ -44,3 +44,22 @@ func SetSubServer(s SubServer) {
 func GetSubServer() SubServer {
 	return subServer
 }
+
+// geoAutoUpdateReloader is set by the web server so other packages (e.g. the
+// controllers) can re-register the geo auto-update cron entry when the admin
+// changes the cron expression, without restarting the panel.
+var geoAutoUpdateReloader func(string) error
+
+// SetGeoAutoUpdateReloader registers the reloader implementation.
+func SetGeoAutoUpdateReloader(f func(string) error) {
+	geoAutoUpdateReloader = f
+}
+
+// ReloadGeoAutoUpdate re-schedules the geo auto-update job with the given
+// cron expression. It is a no-op if no reloader has been registered yet.
+func ReloadGeoAutoUpdate(expr string) error {
+	if geoAutoUpdateReloader == nil {
+		return nil
+	}
+	return geoAutoUpdateReloader(expr)
+}
