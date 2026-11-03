@@ -59,6 +59,7 @@ type SUBController struct {
 	subAnnounce         string
 	subEnableRouting    bool
 	subRoutingRules     string
+	subRoutingSource    string
 	subJsonRoutingRules string
 	subHideSettings     bool
 	happConfig          HappConfig
@@ -126,6 +127,7 @@ type subControllerConfig struct {
 	subAnnounce      string
 	subEnableRouting bool
 	subRoutingRules  string
+	subRoutingSource string
 	subHideSettings  bool
 	happConfig       HappConfig
 	incyConfig       IncyConfig
@@ -252,6 +254,14 @@ func WithSUBRoutingRules(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subRoutingRules = value }
 }
 
+// WithSUBRoutingSource selects the RoscomVPN routing profile source:
+// default | jsonsub | whitelist resolve to the matching .DEEPLINK URL from
+// the roscomvpn-routing repository; "custom" (or empty) uses the admin
+// provided subRoutingRules value as-is.
+func WithSUBRoutingSource(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subRoutingSource = value }
+}
+
 func WithSUBHideSettings(value bool) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subHideSettings = value }
 }
@@ -309,6 +319,7 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 		subAnnounce:         config.subAnnounce,
 		subEnableRouting:    config.subEnableRouting,
 		subRoutingRules:     config.subRoutingRules,
+		subRoutingSource:    config.subRoutingSource,
 		subJsonRoutingRules: config.subJsonRoutingRules,
 		subHideSettings:     config.subHideSettings,
 		happConfig:          config.happConfig,
@@ -954,6 +965,10 @@ func (a *SUBController) ApplyCommonHeaders(
 	profileRoutingRules string,
 	profileHideSettings bool,
 ) {
+	// RoscomVPN edition: a named routing source expands to the matching
+	// .DEEPLINK URL before the remote-routing resolver sees it; "custom" or
+	// empty keeps the admin-provided rules untouched.
+	profileRoutingRules = ResolveRoscomVPNRouting(a.subRoutingSource, profileRoutingRules)
 	c.Writer.Header().Set("Subscription-Userinfo", header)
 	c.Writer.Header().Set("Profile-Update-Interval", updateInterval)
 

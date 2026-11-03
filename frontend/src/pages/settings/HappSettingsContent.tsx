@@ -143,6 +143,24 @@ export default function HappSettingsContent({
 
                 <SettingListItem
                   paddings="small"
+                  title={t('pages.settings.subRoutingSource')}
+                  description={t('pages.settings.subRoutingSourceDesc')}
+                >
+                  <Select
+                    value={allSetting.subRoutingSource || 'custom'}
+                    style={{ width: '100%' }}
+                    onChange={(v) => updateSetting({ subRoutingSource: v })}
+                    options={[
+                      { value: 'default', label: t('pages.settings.subRoutingSourceDefault') },
+                      { value: 'jsonsub', label: t('pages.settings.subRoutingSourceJsonSub') },
+                      { value: 'whitelist', label: t('pages.settings.subRoutingSourceWhitelist') },
+                      { value: 'custom', label: t('pages.settings.subRoutingSourceCustom') },
+                    ]}
+                  />
+                </SettingListItem>
+
+                <SettingListItem
+                  paddings="small"
                   title={t('pages.settings.subRoutingRules')}
                   badge={remoteSourceBadge(allSetting.subRoutingRules)}
                   description={t('pages.settings.subRoutingRulesDesc')}

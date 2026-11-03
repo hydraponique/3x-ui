@@ -160,6 +160,7 @@ export interface AllSetting {
   subProfileMode: string;
   subProfileUrl: string;
   subRoutingRules: string;
+  subRoutingSource: string;
   subShowIdentityOnAllLinks: boolean;
   subSupportUrl: string;
   subThemeDir: string;
@@ -351,6 +352,7 @@ export interface AllSettingView {
   subProfileMode: string;
   subProfileUrl: string;
   subRoutingRules: string;
+  subRoutingSource: string;
   subShowIdentityOnAllLinks: boolean;
   subSupportUrl: string;
   subThemeDir: string;

@@ -219,6 +219,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubRoutingRules = ""
 	}
 
+	SubRoutingSource, err := s.settingService.GetSubRoutingSource()
+	if err != nil {
+		SubRoutingSource = RoscomVPNSourceDefault
+	}
+
 	SubHideSettings, err := s.settingService.GetSubHideSettings()
 	if err != nil {
 		SubHideSettings = false
@@ -374,6 +379,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		WithSUBAnnounce(SubAnnounce),
 		WithSUBEnableRouting(SubEnableRouting),
 		WithSUBRoutingRules(SubRoutingRules),
+		WithSUBRoutingSource(SubRoutingSource),
 		WithSUBHideSettings(SubHideSettings),
 		WithSUBHappConfig(happCfg),
 		WithSUBIncyConfig(incyCfg),

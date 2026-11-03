@@ -53,6 +53,7 @@ export class AllSetting {
   subAnnounce = '';
   subEnableRouting = false;
   subRoutingRules = '';
+  subRoutingSource = 'default';
   subIncyEnableRouting = false;
   subIncyRoutingRules = '';
   subListen = '';

@@ -115,6 +115,7 @@ var defaultValueMap = map[string]string{
 	"subAnnounce":                 "",
 	"subEnableRouting":            "false",
 	"subRoutingRules":             "",
+	"subRoutingSource":            "default",
 	"subHideSettings":             "false",
 	"subHappAutoDetect":           "false",
 	"subHappProviderId":           "",
@@ -940,6 +941,12 @@ func (s *SettingService) GetSubEnableRouting() (bool, error) {
 
 func (s *SettingService) GetSubRoutingRules() (string, error) {
 	return s.getString("subRoutingRules")
+}
+
+// GetSubRoutingSource returns the RoscomVPN routing profile source:
+// default | jsonsub | whitelist | custom. Empty values resolve to "default".
+func (s *SettingService) GetSubRoutingSource() (string, error) {
+	return s.getString("subRoutingSource")
 }
 
 func (s *SettingService) GetSubHideSettings() (bool, error) {
