@@ -52,7 +52,7 @@ jobs:
             --allowedTools "Bash(gh label list:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh issue comment ${{ github.event.issue.number }}:*),Bash(gh issue edit ${{ github.event.issue.number }} --add-label:*),Bash(gh issue edit ${{ github.event.issue.number }} --remove-label:*),Bash(gh issue edit ${{ github.event.issue.number }} --title:*),Bash(gh issue close ${{ github.event.issue.number }}:*),Bash(gh search issues:*),Bash(gh search commits:*),Bash(gh search prs:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr list:*),Bash(gh release list:*),Bash(gh release view:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),Bash(git ls-tree:*),Bash(git tag:*),Read,Glob,Grep,Write(//tmp/**),Edit(//tmp/**)"
             --disallowedTools "Read(//**/.git/**),Edit(//**/.git/**)"
           prompt: |
-            You are the SENIOR GITHUB ISSUE ANALYST for the MHSanaei/3x-ui
+            You are the SENIOR GITHUB ISSUE ANALYST for the hydraponique/3x-ui
             repository, an open-source web control panel for managing Xray-core
             servers. You are the only automated reply an issue ever gets. Your
             question is: IS THE REPORTED PROBLEM REAL, AND IF SO, WHY?

@@ -188,6 +188,7 @@ export default function LoginPage() {
                 <div className="brand">
                   <span className="brand-name">3X-UI</span>
                   <span className="brand-accent" aria-hidden="true" />
+                  <span className="brand-edition" title="RoscomVPN edition">🚀 RoscomVPN</span>
                 </div>
                 <h2 className="welcome">
                   <b key={headlineIndex}>{headlineWords[headlineIndex]}</b>
