@@ -2354,15 +2354,24 @@ type geofileEntry struct {
 	Repo     string
 	Asset    string
 	FileName string
+	// DigestOptional marks sources that do not publish a .sha256sum sidecar
+	// next to their assets yet (RoscomVPN). Verification is skipped with a
+	// warning instead of failing the update; as soon as the upstream starts
+	// publishing sidecars the digest is enforced again automatically.
+	DigestOptional bool
 }
 
 var geofileAllowlist = map[string]geofileEntry{
-	"geoip.dat":      {"https://github.com/Loyalsoldier/v2ray-rules-dat", "geoip.dat", "geoip.dat"},
-	"geosite.dat":    {"https://github.com/Loyalsoldier/v2ray-rules-dat", "geosite.dat", "geosite.dat"},
-	"geoip_IR.dat":   {"https://github.com/chocolate4u/Iran-v2ray-rules", "geoip.dat", "geoip_IR.dat"},
-	"geosite_IR.dat": {"https://github.com/chocolate4u/Iran-v2ray-rules", "geosite.dat", "geosite_IR.dat"},
-	"geoip_RU.dat":   {"https://github.com/runetfreedom/russia-v2ray-rules-dat", "geoip.dat", "geoip_RU.dat"},
-	"geosite_RU.dat": {"https://github.com/runetfreedom/russia-v2ray-rules-dat", "geosite.dat", "geosite_RU.dat"},
+	"geoip.dat":      {Repo: "https://github.com/Loyalsoldier/v2ray-rules-dat", Asset: "geoip.dat", FileName: "geoip.dat"},
+	"geosite.dat":    {Repo: "https://github.com/Loyalsoldier/v2ray-rules-dat", Asset: "geosite.dat", FileName: "geosite.dat"},
+	"geoip_IR.dat":   {Repo: "https://github.com/chocolate4u/Iran-v2ray-rules", Asset: "geoip.dat", FileName: "geoip_IR.dat"},
+	"geosite_IR.dat": {Repo: "https://github.com/chocolate4u/Iran-v2ray-rules", Asset: "geosite.dat", FileName: "geosite_IR.dat"},
+	"geoip_RU.dat":   {Repo: "https://github.com/runetfreedom/russia-v2ray-rules-dat", Asset: "geoip.dat", FileName: "geoip_RU.dat"},
+	"geosite_RU.dat": {Repo: "https://github.com/runetfreedom/russia-v2ray-rules-dat", Asset: "geosite.dat", FileName: "geosite_RU.dat"},
+	// RoscomVPN routing databases: geoip and geosite live in two separate
+	// repositories and do not publish .sha256sum sidecars yet.
+	"geoip_ROSCOM.dat":   {Repo: "https://github.com/hydraponique/roscomvpn-geoip", Asset: "geoip.dat", FileName: "geoip_ROSCOM.dat", DigestOptional: true},
+	"geosite_ROSCOM.dat": {Repo: "https://github.com/hydraponique/roscomvpn-geosite", Asset: "geosite.dat", FileName: "geosite_ROSCOM.dat", DigestOptional: true},
 }
 
 // GeodataSource identifies a file Xray downloads through its geodata configuration.
@@ -2596,9 +2605,14 @@ func (s *ServerService) stageGeofile(client *http.Client, entry geofileEntry, ta
 	// when it builds its routing matchers, so a bad one takes the core down.
 	want, err := s.fetchGeofileDigest(client, assetURL+".sha256sum", entry.Asset)
 	if err != nil {
-		return false, err
-	}
-	if got := hex.EncodeToString(hasher.Sum(nil)); !strings.EqualFold(got, want) {
+		if !entry.DigestOptional {
+			return false, err
+		}
+		// RoscomVPN databases do not publish a .sha256sum sidecar yet. TLS
+		// plus a pinned repository is the only guarantee until one appears;
+		// the digest is verified again automatically once it is published.
+		logger.Warningf("Geofile %s: checksum sidecar unavailable, installing without verification: %v", entry.FileName, err)
+	} else if got := hex.EncodeToString(hasher.Sum(nil)); !strings.EqualFold(got, want) {
 		return false, common.NewErrorf("does not match the published SHA-256 checksum, so the download is corrupted or has been tampered with (expected %s, got %s)", want, got)
 	}
 

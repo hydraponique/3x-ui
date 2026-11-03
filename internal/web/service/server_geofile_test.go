@@ -166,7 +166,7 @@ func restartStub(t *testing.T, called *bool) {
 func TestUpdateGeofileInstallsVerifiedFile(t *testing.T) {
 	srv, _ := geofileServer(t, []fakeUpstream{{repo: "a", assets: map[string]string{"geoip.dat": "good geoip payload"}}})
 	binFolder := geofileTestEnv(t, map[string]geofileEntry{
-		"geoip.dat": {srv.URL + "/a", "geoip.dat", "geoip.dat"},
+		"geoip.dat": {Repo: srv.URL + "/a", Asset: "geoip.dat", FileName: "geoip.dat"},
 	})
 
 	var restarted bool
@@ -195,7 +195,7 @@ func TestUpdateGeofileRejectsDigestMismatch(t *testing.T) {
 		corrupt: map[string]bool{"geoip.dat": true},
 	}})
 	binFolder := geofileTestEnv(t, map[string]geofileEntry{
-		"geoip.dat": {srv.URL + "/a", "geoip.dat", "geoip.dat"},
+		"geoip.dat": {Repo: srv.URL + "/a", Asset: "geoip.dat", FileName: "geoip.dat"},
 	})
 
 	var restarted bool
@@ -226,8 +226,8 @@ func TestUpdateGeofileInstallsNeitherFileOfAFailedUpstream(t *testing.T) {
 		corrupt: map[string]bool{"geosite.dat": true},
 	}})
 	binFolder := geofileTestEnv(t, map[string]geofileEntry{
-		"geoip.dat":   {srv.URL + "/a", "geoip.dat", "geoip.dat"},
-		"geosite.dat": {srv.URL + "/a", "geosite.dat", "geosite.dat"},
+		"geoip.dat":   {Repo: srv.URL + "/a", Asset: "geoip.dat", FileName: "geoip.dat"},
+		"geosite.dat": {Repo: srv.URL + "/a", Asset: "geosite.dat", FileName: "geosite.dat"},
 	})
 
 	var restarted bool
@@ -261,8 +261,8 @@ func TestUpdateGeofileKeepsGoodUpstreamWhenAnotherFails(t *testing.T) {
 		},
 	})
 	binFolder := geofileTestEnv(t, map[string]geofileEntry{
-		"geoip.dat":    {srv.URL + "/aaa", "geoip.dat", "geoip.dat"},
-		"geoip_RU.dat": {srv.URL + "/zzz", "geoip.dat", "geoip_RU.dat"},
+		"geoip.dat":    {Repo: srv.URL + "/aaa", Asset: "geoip.dat", FileName: "geoip.dat"},
+		"geoip_RU.dat": {Repo: srv.URL + "/zzz", Asset: "geoip.dat", FileName: "geoip_RU.dat"},
 	})
 
 	var restarted bool
@@ -317,7 +317,7 @@ func TestUpdateGeofileSurvivesReleaseRotation(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	binFolder := geofileTestEnv(t, map[string]geofileEntry{
-		"geoip.dat": {srv.URL + "/a", "geoip.dat", "geoip.dat"},
+		"geoip.dat": {Repo: srv.URL + "/a", Asset: "geoip.dat", FileName: "geoip.dat"},
 	})
 
 	var restarted bool
@@ -349,7 +349,7 @@ func TestUpdateGeofileSkipsRestartWhenNotModified(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	binFolder := geofileTestEnv(t, map[string]geofileEntry{
-		"geoip.dat": {srv.URL + "/a", "geoip.dat", "geoip.dat"},
+		"geoip.dat": {Repo: srv.URL + "/a", Asset: "geoip.dat", FileName: "geoip.dat"},
 	})
 
 	existing := filepath.Join(binFolder, "geoip.dat")
@@ -378,7 +378,7 @@ func TestUpdateGeofileSkipsRestartWhenNotModified(t *testing.T) {
 
 func TestUpdateGeofileRejectsNameOutsideAllowlist(t *testing.T) {
 	geofileTestEnv(t, map[string]geofileEntry{
-		"geoip.dat": {"https://example.invalid", "geoip.dat", "geoip.dat"},
+		"geoip.dat": {Repo: "https://example.invalid", Asset: "geoip.dat", FileName: "geoip.dat"},
 	})
 
 	err := (&ServerService{}).UpdateGeofile("../../etc/passwd")
@@ -394,9 +394,11 @@ func TestStandardGeodataSources(t *testing.T) {
 	want := []GeodataSource{
 		{URL: "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat", File: "geoip.dat"},
 		{URL: "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat", File: "geoip_IR.dat"},
+		{URL: "https://github.com/hydraponique/roscomvpn-geoip/releases/latest/download/geoip.dat", File: "geoip_ROSCOM.dat"},
 		{URL: "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat", File: "geoip_RU.dat"},
 		{URL: "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat", File: "geosite.dat"},
 		{URL: "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat", File: "geosite_IR.dat"},
+		{URL: "https://github.com/hydraponique/roscomvpn-geosite/releases/latest/download/geosite.dat", File: "geosite_ROSCOM.dat"},
 		{URL: "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat", File: "geosite_RU.dat"},
 	}
 

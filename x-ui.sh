@@ -1231,6 +1231,45 @@ update_all_geofiles() {
     update_geofiles "main" || failed=1
     update_geofiles "IR" || failed=1
     update_geofiles "RU" || failed=1
+    update_geofiles "ROSCOM" || failed=1
+    return $failed
+}
+
+update_geofiles_roscom() {
+    # RoscomVPN splits its databases across two repositories: geoip.dat is
+    # published by roscomvpn-geoip, geosite.dat by roscomvpn-geosite.
+    local failed=0 http_code dat repo remote_file dest temp_file
+    for spec in "geoip_ROSCOM hydraponique/roscomvpn-geoip geoip" "geosite_ROSCOM hydraponique/roscomvpn-geosite geosite"; do
+        read -r dat repo remote_file <<< "$spec"
+        dest="${xui_folder}/bin/${dat}.dat"
+        temp_file="${dest}.tmp.$$"
+        rm -f "$temp_file"
+        # -z (against the live file, not the temp file) skips the download
+        # (server answers 304) when the local copy is already current.
+        http_code=$(curl -sSfLRo "$temp_file" -z "$dest" -w '%{http_code}' \
+            "https://github.com/${repo}/releases/latest/download/${remote_file}.dat")
+        if [[ $? -ne 0 ]]; then
+            echo -e "${red}${dat}.dat: download failed${plain}"
+            rm -f "$temp_file"
+            failed=1
+        elif [[ "$http_code" == "304" ]]; then
+            echo -e "${dat}.dat: already up to date"
+            rm -f "$temp_file"
+        elif [[ ! -s "$temp_file" ]]; then
+            echo -e "${red}${dat}.dat: downloaded file is empty${plain}"
+            rm -f "$temp_file"
+            failed=1
+        else
+            if mv -f "$temp_file" "$dest"; then
+                echo -e "${green}${dat}.dat: updated${plain}"
+                geo_updated=1
+            else
+                echo -e "${red}${dat}.dat: failed to install${plain}"
+                rm -f "$temp_file"
+                failed=1
+            fi
+        fi
+    done
     return $failed
 }
 
@@ -1247,6 +1286,10 @@ update_geofiles() {
         "RU")
             dat_files=(geoip_RU geosite_RU)
             dat_source="runetfreedom/russia-v2ray-rules-dat"
+            ;;
+        "ROSCOM")
+            update_geofiles_roscom
+            return
             ;;
         *)
             echo -e "${red}update_geofiles: unknown dataset '${1}'${plain}"
@@ -1309,7 +1352,8 @@ update_geo() {
     echo -e "${green}\t1.${plain} Loyalsoldier (geoip.dat, geosite.dat)"
     echo -e "${green}\t2.${plain} chocolate4u (geoip_IR.dat, geosite_IR.dat)"
     echo -e "${green}\t3.${plain} runetfreedom (geoip_RU.dat, geosite_RU.dat)"
-    echo -e "${green}\t4.${plain} All"
+    echo -e "${green}\t4.${plain} RoscomVPN (geoip_ROSCOM.dat, geosite_ROSCOM.dat)"
+    echo -e "${green}\t5.${plain} All"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -rp "Choose an option: " choice
 
@@ -1327,6 +1371,9 @@ update_geo() {
             run_geo_update "runetfreedom datasets" update_geofiles "RU"
             ;;
         4)
+            run_geo_update "RoscomVPN datasets" update_geofiles "ROSCOM"
+            ;;
+        5)
             run_geo_update "geo files" update_all_geofiles
             ;;
         *)

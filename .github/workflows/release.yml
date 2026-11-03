@@ -152,6 +152,8 @@ jobs:
           fetch -O geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
           fetch -O geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
           fetch -O geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
+          fetch -O geoip_ROSCOM.dat https://github.com/hydraponique/roscomvpn-geoip/releases/latest/download/geoip.dat
+          fetch -O geosite_ROSCOM.dat https://github.com/hydraponique/roscomvpn-geosite/releases/latest/download/geosite.dat
           mv xray xray-linux-${{ matrix.platform }}
           # mtg-multi (MTProto sidecar) ships prebuilt release binaries whose
           # platform labels match our matrix, so download and unpack the matching
@@ -294,6 +296,8 @@ jobs:
           Invoke-WebRequest @retry -Uri "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat" -OutFile "geosite_IR.dat"
           Invoke-WebRequest @retry -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat" -OutFile "geoip_RU.dat"
           Invoke-WebRequest @retry -Uri "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat" -OutFile "geosite_RU.dat"
+          Invoke-WebRequest @retry -Uri "https://github.com/hydraponique/roscomvpn-geoip/releases/latest/download/geoip.dat" -OutFile "geoip_ROSCOM.dat"
+          Invoke-WebRequest @retry -Uri "https://github.com/hydraponique/roscomvpn-geosite/releases/latest/download/geosite.dat" -OutFile "geosite_ROSCOM.dat"
           Rename-Item xray.exe xray-windows-amd64.exe
 
           # mtg-multi (MTProto sidecar) publishes a prebuilt Windows binary, so
